@@ -4,9 +4,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F5F7"> <!-- Soft modern gray background matches other pages -->
+    android:background="#F4F5F7">
 
-    <!-- 1. Regular Text Header -->
     <TextView
         android:id="@+id/tvSettingsTitle"
         android:layout_width="match_parent"
@@ -19,32 +18,29 @@
         android:textStyle="bold"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 2. The Settings Menu Container -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="24dp"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="32dp"
         android:orientation="vertical"
         app:layout_constraintTop_toBottomOf="@id/tvSettingsTitle">
 
-
-
-        <!-- NEW: TEST NOTIFICATION BUTTON -->
-
-        <!-- NEW: CLEAR HISTORY BUTTON -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnTestNotification"
+            android:id="@+id/btnConnectHealth"
             android:layout_width="match_parent"
             android:layout_height="64dp"
             android:layout_marginBottom="16dp"
-            android:text="TEST NOTIFICATION"
+            android:text="CONNECT HEALTH "
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold"
-            app:backgroundTint="#1E104E"
+            app:backgroundTint="#4CAF50"
             app:cornerRadius="16dp"
-            app:elevation="2dp" />
+            app:elevation="2dp"
+            app:icon="@android:drawable/ic_menu_add"
+            app:iconGravity="textStart"
+            app:iconTint="#FFFFFF" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnClearHistory"
@@ -61,7 +57,6 @@
             app:strokeColor="#EF5350"
             app:strokeWidth="1dp" />
 
-        <!-- LOG OUT BUTTON (Premium white card with a red danger outline) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnLogout"
             android:layout_width="match_parent"
@@ -78,7 +73,6 @@
 
     </LinearLayout>
 
-    <!-- 3. Floating 'Pill' Back Button (Matches Journal & Stats exactly) -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSettingsBack"
         android:layout_width="wrap_content"

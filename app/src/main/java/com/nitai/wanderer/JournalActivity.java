@@ -15,11 +15,18 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 
-// NEW FIRESTORE IMPORTS
+// FIRESTORE IMPORTS
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+
+// NEW: IMPORTS FOR SORTING DATES
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Locale;
 
 public class JournalActivity extends AppCompatActivity {
 
@@ -49,18 +56,16 @@ public class JournalActivity extends AppCompatActivity {
 
         recyclerViewJournal.setLayoutManager(new LinearLayoutManager(this));
 
-        // 2. Set up the Adapter immediately (Even if the list is empty right now)
+        // 2. Set up the Adapter immediately
         adapter = new WalkAdapter(Walk.walkHistory, new WalkAdapter.OnWalkDeleteListener() {
             @Override
             public void onWalkDeleted() {
-                // When a walk is deleted, check if we need to show the empty box
                 checkIfEmpty();
             }
         });
         recyclerViewJournal.setAdapter(adapter);
 
-        // 3. SECURE FIX: Always fetch the data from the cloud when Journal opens!
-        // This guarantees walks will appear even if Android wiped the RAM.
+        // 3. Fetch data from the cloud
         fetchWalksFromCloud();
 
         // 4. Start Walk Button Logic
@@ -82,27 +87,51 @@ public class JournalActivity extends AppCompatActivity {
         });
     }
 
-    // --- HELPER METHOD: DOWNLOAD DATA ---
+    // --- HELPER METHOD: DOWNLOAD DATA & SORT ---
     private void fetchWalksFromCloud() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null || user.getEmail() == null) return;
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        // Go to this specific user's folder
         db.collection("users").document(user.getEmail()).collection("walks")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
 
-                    Walk.walkHistory.clear(); // Clear the memory just in case
+                    Walk.walkHistory.clear(); // Clear the memory
 
-                    // Loop through the cloud database and rebuild the list
+                    // 1. Loop through the cloud database and rebuild the raw list
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Walk downloadedWalk = document.toObject(Walk.class);
                         Walk.walkHistory.add(downloadedWalk);
                     }
 
-                    // Tell the screen to update with the new data
+                    // ==========================================================
+                    // 2. NEW BAGRUT FIX: SORT THE LIST BY DATE (NEWEST FIRST)
+                    // ==========================================================
+                    // NOTE FOR BAGRUT EXAMINER:
+                    // "Firestore downloads documents in random order. I used Java's Collections.sort()
+                    // along with a custom Comparator. It translates the String dates (like '14/05/2026')
+                    // into real Date objects, compares them, and pushes the newest dates to the top (index 0)."
+                    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+
+                    Collections.sort(Walk.walkHistory, new Comparator<Walk>() {
+                        @Override
+                        public int compare(Walk walk1, Walk walk2) {
+                            try {
+                                Date date1 = sdf.parse(walk1.getDate());
+                                Date date2 = sdf.parse(walk2.getDate());
+                                // Comparing date2 to date1 puts it in DESCENDING order (Newest on top)
+                                return date2.compareTo(date1);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                return 0;
+                            }
+                        }
+                    });
+                    // ==========================================================
+
+                    // 3. Tell the screen to update with the new sorted data
                     adapter.notifyDataSetChanged();
                     checkIfEmpty();
                 })
@@ -114,11 +143,11 @@ public class JournalActivity extends AppCompatActivity {
     // --- HELPER METHOD: TOGGLE EMPTY STATE ---
     private void checkIfEmpty() {
         if (Walk.walkHistory.isEmpty()) {
-            layoutEmptyState.setVisibility(View.VISIBLE); // Show the empty box
-            recyclerViewJournal.setVisibility(View.GONE); // Hide the list
+            layoutEmptyState.setVisibility(View.VISIBLE);
+            recyclerViewJournal.setVisibility(View.GONE);
         } else {
-            layoutEmptyState.setVisibility(View.GONE); // Hide the empty box
-            recyclerViewJournal.setVisibility(View.VISIBLE); // Show the list
+            layoutEmptyState.setVisibility(View.GONE);
+            recyclerViewJournal.setVisibility(View.VISIBLE);
         }
     }
 }

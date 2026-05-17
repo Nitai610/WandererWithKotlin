@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
@@ -13,145 +14,110 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.button.MaterialButton;
-
-// NOTE: We need the Firebase tools to delete cloud data and log out safely!
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
+// NEW: Health Connect permissions imports
+import androidx.health.connect.client.PermissionController;
+import java.util.Set;
+
 public class SettingsActivity extends AppCompatActivity {
 
-    MaterialButton btnLogout, btnClearHistory, btnTestNotification, btnSettingsBack;
+    MaterialButton btnLogout, btnClearHistory, btnSettingsBack, btnConnectHealth;
+    HealthConnectBridge healthBridge;
+
+    // NOTE FOR BAGRUT: What is an ActivityResultLauncher?
+    // "In older Android versions, we had to use 'startActivityForResult' and 'onRequestPermissionsResult'
+    // which was messy. The new ActivityResultLauncher is much cleaner. We define exactly what we want
+    // to ask for (Health Connect Permissions) and define exactly what should happen when the user replies,
+    // all in one neat block of code!"
+    private final ActivityResultLauncher<Set<String>> requestPermissionActivityContract =
+            registerForActivityResult(
+                    PermissionController.createRequestPermissionResultContract(),
+                    granted -> {
+                        if (granted.containsAll(healthBridge.getRequiredPermissions())) {
+                            Toast.makeText(this, "Health Connect Linked Successfully!", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(this, "Permissions Denied. Live stats will be disabled.", Toast.LENGTH_LONG).show();
+                        }
+                    }
+            );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // --- IMMERSIVE MODE ---
-        WindowInsetsControllerCompat windowInsetsController =
-                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
-        windowInsetsController.setSystemBarsBehavior(
-                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        WindowInsetsControllerCompat windowInsetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        windowInsetsController.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
-        // ----------------------
 
         setContentView(R.layout.activity_settings);
 
-        // Connect UI
         btnLogout = findViewById(R.id.btnLogout);
         btnClearHistory = findViewById(R.id.btnClearHistory);
-        btnTestNotification = findViewById(R.id.btnTestNotification);
         btnSettingsBack = findViewById(R.id.btnSettingsBack);
+        btnConnectHealth = findViewById(R.id.btnConnectHealth); // NEW
 
-        // --- 1. GO BACK BUTTON ---
-        btnSettingsBack.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
+        // Initialize the Kotlin Bridge
+        healthBridge = new HealthConnectBridge(this);
+
+        // --- CONNECT HEALTH LOGIC ---
+        btnConnectHealth.setOnClickListener(v -> {
+            // This triggers the Android system popup asking the user to approve Steps and Calories
+            requestPermissionActivityContract.launch(healthBridge.getRequiredPermissions());
         });
 
-        // --- 2. TEST NOTIFICATION BUTTON ---
-        btnTestNotification.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new AlertDialog.Builder(SettingsActivity.this)
-                        .setTitle("ding dong!")
-                        .setMessage("nigi")
-                        .setIcon(android.R.drawable.ic_dialog_info)
-                        .setPositiveButton("fahh", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        })
-                        .show();
-            }
+        // --- GO BACK BUTTON LOGIC ---
+        btnSettingsBack.setOnClickListener(v -> finish());
+
+        // --- CLEAR HISTORY BUTTON LOGIC ---
+        btnClearHistory.setOnClickListener(v -> {
+            new AlertDialog.Builder(SettingsActivity.this)
+                    .setTitle("Clear Journal")
+                    .setMessage("Are you sure you want to permanently delete all your saved walks from the cloud?")
+                    .setPositiveButton("Delete All", (dialog, which) -> {
+                        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                        if (user == null || user.getEmail() == null) return;
+
+                        FirebaseFirestore db = FirebaseFirestore.getInstance();
+                        String userEmail = user.getEmail();
+
+                        db.collection("users").document(userEmail).collection("walks").get()
+                                .addOnSuccessListener(queryDocumentSnapshots -> {
+                                    WriteBatch batch = db.batch();
+                                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                                        batch.delete(document.getReference());
+                                    }
+                                    batch.commit().addOnSuccessListener(aVoid -> {
+                                        Walk.walkHistory.clear();
+                                        Toast.makeText(SettingsActivity.this, "Journal cleared", Toast.LENGTH_SHORT).show();
+                                    });
+                                });
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
         });
 
-        // --- 3. CLEAR JOURNAL HISTORY BUTTON (UPDATED FOR FIRESTORE) ---
-        btnClearHistory.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new AlertDialog.Builder(SettingsActivity.this)
-                        .setTitle("Clear Journal")
-                        .setMessage("Are you sure you want to permanently delete all your saved walks from the cloud?")
-                        .setPositiveButton("Delete All", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
+        // --- LOGOUT BUTTON LOGIC ---
+        btnLogout.setOnClickListener(v -> {
+            new AlertDialog.Builder(SettingsActivity.this)
+                    .setTitle("Log Out")
+                    .setMessage("Are you sure you want to log out?")
+                    .setPositiveButton("Yes, Log Out", (dialog, which) -> {
+                        FirebaseAuth.getInstance().signOut();
+                        Walk.walkHistory.clear();
+                        Toast.makeText(SettingsActivity.this, "Logged Out", Toast.LENGTH_SHORT).show();
 
-                                // BAGRUT FIX: Get the Database and the correct User Email!
-                                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                                if (user == null || user.getEmail() == null) return;
-
-                                FirebaseFirestore db = FirebaseFirestore.getInstance();
-                                String userEmail = user.getEmail();
-
-                                // 2. Go to the user's "walks" folder in the cloud
-                                db.collection("users").document(userEmail).collection("walks")
-                                        .get()
-                                        .addOnSuccessListener(queryDocumentSnapshots -> {
-
-                                            // BAGRUT NOTE: We use a WriteBatch for massive deletions.
-                                            // This tells Firebase to queue up all the deletions and execute them
-                                            // in one single network request, saving battery and data!
-                                            WriteBatch batch = db.batch();
-
-                                            for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                                                batch.delete(document.getReference());
-                                            }
-
-                                            // Execute the mass deletion
-                                            batch.commit().addOnSuccessListener(aVoid -> {
-                                                // 3. Clear the memory in the phone so the screen updates immediately
-                                                Walk.walkHistory.clear();
-                                                Toast.makeText(SettingsActivity.this, "Journal completely cleared", Toast.LENGTH_SHORT).show();
-                                            }).addOnFailureListener(e -> {
-                                                Toast.makeText(SettingsActivity.this, "Error during mass deletion", Toast.LENGTH_SHORT).show();
-                                            });
-
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Toast.makeText(SettingsActivity.this, "Error finding walks: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                        });
-                            }
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-            }
-        });
-
-        // --- 4. LOG OUT BUTTON (UPDATED FOR FIREBASE AUTH) ---
-        btnLogout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new AlertDialog.Builder(SettingsActivity.this)
-                        .setTitle("Log Out")
-                        .setMessage("Are you sure you want to log out?")
-                        .setPositiveButton("Yes, Log Out", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-
-                                // NOTE: This is the critical command! It tells the Google servers to officially
-                                // lock the app and erase the temporary security token from the phone.
-                                FirebaseAuth.getInstance().signOut();
-
-                                // Clear the local memory so the next person who logs in doesn't see your walks
-                                Walk.walkHistory.clear();
-
-                                Toast.makeText(SettingsActivity.this, "Logged Out", Toast.LENGTH_SHORT).show();
-
-                                Intent intent = new Intent(SettingsActivity.this, LoginActivity.class);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                startActivity(intent);
-                                finish();
-                            }
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-            }
+                        Intent intent = new Intent(SettingsActivity.this, LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
         });
     }
 }

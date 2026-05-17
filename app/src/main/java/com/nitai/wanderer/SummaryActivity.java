@@ -9,7 +9,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
@@ -18,7 +17,6 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -35,27 +33,23 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 public class SummaryActivity extends AppCompatActivity {
 
-    // --- UI ELEMENTS ---
     TextView tvFinalDistance, tvFinalTime;
     MaterialButton btnSaveWalk, btnDiscardWalk, btnSummaryBack, btnContinueWalk;
     LinearLayout layoutActiveButtons;
 
-    // --- DATA VARIABLES ---
     String finalDistance;
     String finalTime;
+    String finalSteps;
+    String finalCalories;
     ArrayList<LatLng> walkPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // NOTE: Immersive Mode hides system bars to focus on the map
         WindowInsetsControllerCompat windowInsetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
-
         setContentView(R.layout.activity_summary);
 
-        // --- CONNECTING JAVA TO XML ---
         tvFinalDistance = findViewById(R.id.tvFinalDistance);
         tvFinalTime = findViewById(R.id.tvFinalTime);
         btnSaveWalk = findViewById(R.id.btnSaveWalk);
@@ -64,24 +58,36 @@ public class SummaryActivity extends AppCompatActivity {
         btnSummaryBack = findViewById(R.id.btnSummaryBack);
         layoutActiveButtons = findViewById(R.id.layoutActiveButtons);
 
-        // --- INTENT HANDLING (BAGRUT TRICK) ---
-        // We use one screen for two purposes: viewing old history or finishing a new walk.
+        // NOTE FOR BAGRUT: Why use an index check here?
+        // "I am recycling this single Activity for two different purposes to keep the codebase DRY (Don't Repeat Yourself).
+        // It acts as a post-walk save screen AND a history viewer from the Journal."
         int oldWalkIndex = getIntent().getIntExtra("OLD_WALK_INDEX", -1);
 
         if (oldWalkIndex != -1) {
-            // SCENARIO 1: Viewing an old walk from JournalActivity
+            // SCENARIO 1: Viewing an old walk from the Journal
             Walk oldWalk = Walk.walkHistory.get(oldWalkIndex);
             finalDistance = oldWalk.distance;
             finalTime = oldWalk.time;
+
+            // NOTE FOR BAGRUT: What is backward compatibility?
+            // "I added the steps and calories features later in development. If the user clicks on a walk
+            // saved in January, those variables will be null. This ternary operator prevents a NullPointerException."
+            finalSteps = (oldWalk.steps != null) ? oldWalk.steps : "0";
+            finalCalories = (oldWalk.calories != null) ? oldWalk.calories : "0";
+
             walkPath = oldWalk.getGooglePath();
 
-            layoutActiveButtons.setVisibility(View.GONE); // Hide Save/Discard/Continue
-            btnSummaryBack.setVisibility(View.VISIBLE); // Show Back button
+            layoutActiveButtons.setVisibility(View.GONE);
+            btnSummaryBack.setVisibility(View.VISIBLE);
         } else {
-            // SCENARIO 2: Just finished tracking a live walk
+            // SCENARIO 2: Just finished a live walk
             finalDistance = getIntent().getStringExtra("FINAL_DISTANCE");
             finalTime = getIntent().getStringExtra("FINAL_TIME");
-            walkPath = getIntent().getParcelableArrayListExtra("PATH_POINTS");
+            finalSteps = getIntent().getStringExtra("FINAL_STEPS");
+            finalCalories = getIntent().getStringExtra("FINAL_CALORIES");
+
+            // Copying the GPS path directly from the RAM variable inside TrackingService
+            walkPath = new ArrayList<>(TrackingService.livePath);
 
             layoutActiveButtons.setVisibility(View.VISIBLE);
             btnSummaryBack.setVisibility(View.GONE);
@@ -90,32 +96,26 @@ public class SummaryActivity extends AppCompatActivity {
         tvFinalDistance.setText(finalDistance);
         tvFinalTime.setText(finalTime);
 
-        // --- GOOGLE MAPS SETUP ---
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.summaryMap);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(googleMap -> drawRouteOnMap(googleMap));
-        }
+        if (mapFragment != null) mapFragment.getMapAsync(googleMap -> drawRouteOnMap(googleMap));
 
-        // --- BUTTON: RESUME WALKING ---
+        // NOTE: Flawless Resume feature using an Intent flag
         btnContinueWalk.setOnClickListener(v -> {
-            // NOTE: Flawless Resume. We pass a flag to tell TravelActivity NOT to reset the timer
             Intent intent = new Intent(SummaryActivity.this, TravelActivity.class);
             intent.putExtra("RESUME_WALK", true);
             startActivity(intent);
             finish();
         });
 
-        // --- BUTTON: DISCARD WALK (DIALOG REQUIREMENT) ---
         btnDiscardWalk.setOnClickListener(v -> {
-            // BAGRUT REQUIREMENT: Using an AlertDialog to prevent accidental data loss
             new AlertDialog.Builder(SummaryActivity.this)
                     .setTitle("Discard Walk?")
                     .setMessage("Are you sure you want to throw away this walk? This action cannot be undone.")
                     .setPositiveButton("Discard", (dialog, which) -> {
-                        resetTrackingData(); // Wipe static variables
+                        resetTrackingData();
                         Toast.makeText(SummaryActivity.this, "Walk Discarded", Toast.LENGTH_SHORT).show();
 
-                        // CLEAR_TOP ensures we don't build a stack of open activities
+                        // NOTE: FLAG_ACTIVITY_CLEAR_TOP wipes all intermediate activities from the backstack
                         Intent homeIntent = new Intent(SummaryActivity.this, MainActivity.class);
                         homeIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         startActivity(homeIntent);
@@ -125,39 +125,38 @@ public class SummaryActivity extends AppCompatActivity {
                     .show();
         });
 
-        // --- BUTTON: SAVE TO CLOUD ---
         btnSaveWalk.setOnClickListener(v -> saveWalkToFirestore());
-
         btnSummaryBack.setOnClickListener(v -> finish());
     }
 
     private void saveWalkToFirestore() {
-        btnSaveWalk.setEnabled(false); // Prevent multiple clicks/saves
+        btnSaveWalk.setEnabled(false); // Prevents duplicate spam clicks
         btnSaveWalk.setText("SAVING...");
 
         String currentDate = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
-        // BAGRUT TRICK: If display name is missing, use email prefix
         String currentUsername = user.getDisplayName();
         if (currentUsername == null || currentUsername.isEmpty()) {
-            currentUsername = user.getEmail().split("@")[0];
+            currentUsername = user.getEmail().split("@")[0]; // Fallback to email prefix
         }
 
-        Walk completedWalk = new Walk(currentUsername, finalDistance, finalTime, currentDate, walkPath);
+        // Bundle everything into the Walk object using the updated constructor
+        Walk completedWalk = new Walk(currentUsername, finalDistance, finalTime, finalSteps, finalCalories, currentDate, walkPath);
 
+        // Upload to Cloud Firestore
         FirebaseFirestore.getInstance().collection("users").document(user.getEmail())
                 .collection("walks").add(completedWalk)
                 .addOnSuccessListener(ref -> {
-                    Walk.walkHistory.add(0, completedWalk); // Add to top of local list
-                    resetTrackingData(); // Clear live counters
+                    // Update local RAM so the UI refreshes instantly
+                    Walk.walkHistory.add(0, completedWalk);
+                    resetTrackingData();
                     finish();
                 });
     }
 
     private void drawRouteOnMap(GoogleMap googleMap) {
         if (walkPath != null && !walkPath.isEmpty()) {
-            // Draw a line connecting all GPS points
             PolylineOptions line = new PolylineOptions().addAll(walkPath).color(Color.BLUE).width(12f);
             googleMap.addPolyline(line);
             googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(walkPath.get(0), 16f));
@@ -165,9 +164,10 @@ public class SummaryActivity extends AppCompatActivity {
     }
 
     private void resetTrackingData() {
-        // We must clear static variables so the next walk starts at 0
         TrackingService.liveDistanceInMeters = 0f;
         TrackingService.liveSecondsElapsed = 0;
+        TrackingService.liveStepsTaken = 0;      // NEW: Clear RAM
+        TrackingService.liveCaloriesBurned = 0;  // NEW: Clear RAM
         if (TrackingService.livePath != null) TrackingService.livePath.clear();
     }
 }

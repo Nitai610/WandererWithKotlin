@@ -8,6 +8,8 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -29,11 +31,15 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
     private GoogleMap mMap;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 100;
 
-    TextView tvLiveDistance, tvLiveTimer;
+    TextView tvLiveDistance, tvLiveTimer, tvLiveSteps, tvLiveCalories;
     MaterialButton btnStopWalk;
     ImageButton btnCancelWalk;
 
-    // --- THE RADIO RECEIVER (OBSERVER PATTERN) ---
+    HealthConnectBridge healthBridge;
+
+    private Handler healthPollingHandler = new Handler(Looper.getMainLooper());
+    private Runnable healthPollingRunnable;
+
     private BroadcastReceiver uiUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -44,29 +50,38 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Immersive Mode
         WindowInsetsControllerCompat windowInsetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
-
         setContentView(R.layout.activity_travel);
 
         tvLiveDistance = findViewById(R.id.tvLiveDistance);
         tvLiveTimer = findViewById(R.id.tvLiveTimer);
+        tvLiveSteps = findViewById(R.id.tvLiveSteps);
+        tvLiveCalories = findViewById(R.id.tvLiveCalories);
         btnStopWalk = findViewById(R.id.btnStopWalk);
         btnCancelWalk = findViewById(R.id.btnCancelWalk);
+
+        healthBridge = new HealthConnectBridge(this);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mapFragment);
         if (mapFragment != null) mapFragment.getMapAsync(this);
 
         btnStopWalk.setOnClickListener(v -> {
-            // Passing final data to SummaryActivity
             Intent intent = new Intent(TravelActivity.this, SummaryActivity.class);
-            intent.putExtra("FINAL_DISTANCE", tvLiveDistance.getText().toString());
-            intent.putExtra("FINAL_TIME", tvLiveTimer.getText().toString());
-            intent.putParcelableArrayListExtra("PATH_POINTS", TrackingService.livePath);
 
-            stopTrackingService(); // Stop the service while user reviews summary
+            String dist = tvLiveDistance != null ? tvLiveDistance.getText().toString() : "0.00 KM";
+            String time = tvLiveTimer != null ? tvLiveTimer.getText().toString() : "00:00:00";
+
+            // NEW: Read the final values directly from our safe static memory
+            String steps = String.valueOf(TrackingService.liveStepsTaken);
+            String calories = String.valueOf(TrackingService.liveCaloriesBurned);
+
+            intent.putExtra("FINAL_DISTANCE", dist);
+            intent.putExtra("FINAL_TIME", time);
+            intent.putExtra("FINAL_STEPS", steps);
+            intent.putExtra("FINAL_CALORIES", calories);
+
+            stopTrackingService();
             startActivity(intent);
             finish();
         });
@@ -75,13 +90,56 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
             stopTrackingService();
             finish();
         });
+
+        healthPollingRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (TrackingService.isServiceRunning) fetchLiveHealthData();
+                healthPollingHandler.postDelayed(this, 15000);
+            }
+        };
+    }
+
+    private void fetchLiveHealthData() {
+        // --- STEPS ACCUMULATOR LOGIC ---
+        healthBridge.readTodaySteps(new HealthConnectBridge.HealthCallback() {
+            @Override
+            public void onSuccess(long currentTotalDailySteps) {
+                if (TrackingService.lastKnownDailySteps != -1) {
+                    // Find out exactly how many steps were taken in the last 15 seconds
+                    long newSteps = currentTotalDailySteps - TrackingService.lastKnownDailySteps;
+                    if (newSteps > 0) {
+                        TrackingService.liveStepsTaken += newSteps; // Add the chunk to our grand total
+                    }
+                }
+                // Update the "last known" checkpoint for the next 15-second loop
+                TrackingService.lastKnownDailySteps = currentTotalDailySteps;
+                if (tvLiveSteps != null) tvLiveSteps.setText(String.valueOf(TrackingService.liveStepsTaken));
+            }
+            @Override
+            public void onFailure(String errorMessage) { }
+        });
+
+        // --- CALORIES ACCUMULATOR LOGIC ---
+        healthBridge.readTodayCalories(new HealthConnectBridge.HealthCallback() {
+            @Override
+            public void onSuccess(long currentTotalDailyCalories) {
+                if (TrackingService.lastKnownDailyCalories != -1) {
+                    long newCalories = currentTotalDailyCalories - TrackingService.lastKnownDailyCalories;
+                    if (newCalories > 0) {
+                        TrackingService.liveCaloriesBurned += newCalories;
+                    }
+                }
+                TrackingService.lastKnownDailyCalories = currentTotalDailyCalories;
+                if (tvLiveCalories != null) tvLiveCalories.setText(TrackingService.liveCaloriesBurned + " KCAL");
+            }
+            @Override
+            public void onFailure(String errorMessage) { }
+        });
     }
 
     private void startTrackingService() {
         Intent serviceIntent = new Intent(this, TrackingService.class);
-
-        // BAGRUT LOGIC: We check if TravelActivity itself was opened with a "Resume" flag.
-        // We then forward that flag to the Background Service.
         boolean isResuming = getIntent().getBooleanExtra("RESUME_WALK", false);
         serviceIntent.putExtra("RESUME_WALK", isResuming);
 
@@ -95,11 +153,9 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
     private void updateScreenFromService() {
         if (!TrackingService.isServiceRunning) return;
 
-        // 1. Update Distance
         float distanceInKm = TrackingService.liveDistanceInMeters / 1000f;
         tvLiveDistance.setText(String.format(java.util.Locale.US, "%.2f KM", distanceInKm));
 
-        // 2. Update Timer (Supports HH:MM:SS)
         int hours = TrackingService.liveSecondsElapsed / 3600;
         int minutes = (TrackingService.liveSecondsElapsed % 3600) / 60;
         int seconds = TrackingService.liveSecondsElapsed % 60;
@@ -110,7 +166,6 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
             tvLiveTimer.setText(String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds));
         }
 
-        // 3. Update Camera
         if (!TrackingService.livePath.isEmpty() && mMap != null) {
             LatLng latestSpot = TrackingService.livePath.get(TrackingService.livePath.size() - 1);
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latestSpot, 17f));
@@ -145,11 +200,14 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
         super.onResume();
         ContextCompat.registerReceiver(this, uiUpdateReceiver, new IntentFilter("UPDATE_UI_BROADCAST"), ContextCompat.RECEIVER_NOT_EXPORTED);
         updateScreenFromService();
+        fetchLiveHealthData();
+        healthPollingHandler.post(healthPollingRunnable);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         unregisterReceiver(uiUpdateReceiver);
+        healthPollingHandler.removeCallbacks(healthPollingRunnable);
     }
 }

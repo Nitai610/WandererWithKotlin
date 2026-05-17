@@ -21,13 +21,16 @@ import java.util.ArrayList;
 
 public class TrackingService extends Service {
 
-    // BAGRUT NOTE: These are STATIC variables.
-    // Static variables live in the App's memory as long as the app process is alive.
-    // This allows us to "pause" and "resume" because the numbers don't disappear
-    // even when the Service or Activity is temporarily stopped.
     public static ArrayList<LatLng> livePath = new ArrayList<>();
     public static float liveDistanceInMeters = 0f;
     public static int liveSecondsElapsed = 0;
+
+    // NEW: Static variables to safely store accumulated data
+    public static long liveStepsTaken = 0;
+    public static long liveCaloriesBurned = 0;
+    public static long lastKnownDailySteps = -1;
+    public static long lastKnownDailyCalories = -1;
+
     public static boolean isServiceRunning = false;
 
     private FusedLocationProviderClient fusedLocationClient;
@@ -44,25 +47,24 @@ public class TrackingService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // --- THE RESUME FIX ---
-        // 1. We extract the "RESUME_WALK" signal sent from TravelActivity.
         boolean isResuming = (intent != null) && intent.getBooleanExtra("RESUME_WALK", false);
 
         if (!isServiceRunning) {
             isServiceRunning = true;
 
-            // 2. BAGRUT LOGIC: If this is a NEW walk (not resuming), we MUST clear old data.
-            // If isResuming is TRUE, we skip this block and the static variables keep their values!
             if (!isResuming) {
                 livePath.clear();
                 liveDistanceInMeters = 0f;
                 liveSecondsElapsed = 0;
+                liveStepsTaken = 0;      // NEW: Wipe old data on fresh start
+                liveCaloriesBurned = 0;  // NEW: Wipe old data on fresh start
             }
 
-            // 3. We always set lastKnownLocation to null when starting/resuming.
-            // This prevents a "teleportation" bug where the app calculates the distance
-            // between the point where you paused and the point where you resumed.
             lastKnownLocation = null;
+            // NOTE FOR BAGRUT: Setting these to -1 on Resume is a clever trick!
+            // It ensures we don't accidentally count steps/calories you burned while the app was paused (e.g., walking around a store).
+            lastKnownDailySteps = -1;
+            lastKnownDailyCalories = -1;
 
             startForegroundWithNotification();
             startLocationUpdates();

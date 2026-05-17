@@ -5,16 +5,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFA"
+    android:background="#F4F5F7"
     tools:context=".MainActivity">
 
-    <!-- Custom Top Bar Area -->
     <ImageButton
         android:id="@+id/btnProfile"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="User Profile"
         app:layout_constraintStart_toStartOf="parent"
@@ -27,20 +26,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-black"
-        android:text="TRAVELER 2000"
+        android:text="WANDERER"
         android:textColor="#212121"
         android:textSize="22sp"
         app:layout_constraintBottom_toBottomOf="@+id/btnProfile"
         app:layout_constraintEnd_toStartOf="@+id/btnSettings"
         app:layout_constraintStart_toEndOf="@+id/btnProfile"
-        app:layout_constraintTop_toTopOf="@+id/btnProfile"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintTop_toTopOf="@+id/btnProfile" />
 
     <ImageButton
         android:id="@+id/btnSettings"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         android:layout_marginEnd="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Settings"
@@ -49,106 +47,176 @@
         app:srcCompat="@drawable/settings_icon"
         app:tint="#333333" />
 
-    <!-- Weekly Stats Card -->
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardWeeklyStats"
+        android:id="@+id/cardDashboard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="24dp"
-        android:layout_marginTop="40dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="32dp"
         app:cardBackgroundColor="#FFFFFF"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="6dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="8dp"
         app:layout_constraintTop_toBottomOf="@id/tvAppTitle">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="24dp">
+            android:baselineAligned="false"
+            android:orientation="horizontal"
+            android:paddingVertical="24dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="This Week's Distance"
-                android:textColor="#757575"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvWeeklyDistanceMain"
-                android:layout_width="wrap_content"
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_menu_directions"
+                    app:tint="#FFB300" />
+
+                <TextView
+                    android:id="@+id/tvDailyStepsMain"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="0 Steps"
+                    android:textColor="#212121"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TODAY"
+                    android:textColor="#9E9E9E"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:layout_marginVertical="8dp"
+                android:background="#EEEEEE" />
+
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="0.00 KM"
-                android:textColor="#1976D2"
-                android:textSize="48sp"
-                android:textStyle="bold" />
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    app:tint="#1976D2" />
+
+                <TextView
+                    android:id="@+id/tvWeeklyDistanceMain"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="0.00 KM"
+                    android:textColor="#212121"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="THIS WEEK"
+                    android:textColor="#9E9E9E"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Secondary Buttons (Journal & Stats) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardCalories"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        app:cardBackgroundColor="#FFEBEE"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="2dp"
+        app:strokeColor="#FFCDD2"
+        app:strokeWidth="1dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cardDashboard">
+
+        <TextView
+            android:id="@+id/tvDailyCaloriesMain"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="10dp"
+            android:text="Syncing Calories..."
+            android:textColor="#D32F2F"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+    </com.google.android.material.card.MaterialCardView>
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnJournal"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="64dp"
         android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="60dp"
+        android:layout_marginTop="32dp"
         android:text="MY JOURNAL"
         android:textColor="#333333"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:cornerRadius="12dp"
+        app:cornerRadius="16dp"
         app:icon="@drawable/calendar_clock_icon"
         app:iconTint="#333333"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cardWeeklyStats"
-        app:strokeColor="#BDBDBD"
-        app:strokeWidth="2dp" />
+        app:layout_constraintTop_toBottomOf="@id/cardCalories"
+        app:strokeColor="#D1D1D1"
+        app:strokeWidth="1.5dp" />
 
-    <!-- Primary Action: Start Travel Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnStats"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="64dp"
         android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="36dp"
-        android:text="ALL-TIME STATS"
+        android:layout_marginTop="16dp"
+        android:text="FULL STATS"
         android:textColor="#333333"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:cornerRadius="12dp"
+        app:cornerRadius="16dp"
         app:icon="@drawable/sort_icon"
         app:iconTint="#333333"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnJournal"
-        app:strokeColor="#BDBDBD"
-        app:strokeWidth="2dp" />
+        app:strokeColor="#D1D1D1"
+        app:strokeWidth="1.5dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnStartWalk"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_marginHorizontal="24dp"
-        android:layout_marginBottom="32dp"
-        android:text="START WALK"
-        android:textSize="22sp"
+        android:layout_marginBottom="40dp"
+        android:text="START ADVENTURE"
+        android:textSize="20sp"
         android:textStyle="bold"
         app:backgroundTint="#1976D2"
-        app:cornerRadius="20dp"
+        app:cornerRadius="24dp"
+        app:elevation="8dp"
         app:icon="@android:drawable/ic_dialog_map"
         app:iconGravity="textStart"
         app:iconPadding="12dp"
-        app:iconSize="32dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:iconSize="28dp"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

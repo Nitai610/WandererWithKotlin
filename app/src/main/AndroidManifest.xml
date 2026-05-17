@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- 1. Necessary Permissions for Google Maps and GPS -->
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> <!-- 2. NEW: Permissions for Background Tracking & Notifications -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -19,53 +25,52 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Wanderer"
         tools:targetApi="31">
-        <activity
-            android:name=".LeaderboardActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ProfileActivity"
-            android:exported="false" /> <!-- 3. NEW: Register the Background Tracking Service -->
-        <!-- The foregroundServiceType="location" is required by Android 14+ to track GPS -->
+
+        <activity android:name=".LeaderboardActivity" android:exported="false" />
+        <activity android:name=".ProfileActivity" android:exported="false" />
+
         <service
             android:name=".TrackingService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
 
-        <activity
-            android:name=".SummaryActivity"
-            android:exported="false" />
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false" /> <!-- MAIN MENU (Set as the LAUNCHER so it opens first) -->
+        <activity android:name=".SummaryActivity" android:exported="false" />
+        <activity android:name=".SettingsActivity" android:exported="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- LOGIN SCREEN -->
-        <activity
-            android:name=".LoginActivity"
-            android:exported="false" /> <!-- REGISTER SCREEN (With keyboard adjustment fixed) -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+        <activity android:name=".LoginActivity" android:exported="false" />
         <activity
             android:name=".RegisterActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" /> <!-- JOURNAL SCREEN -->
-        <activity
-            android:name=".JournalActivity"
-            android:exported="false" /> <!-- TRAVEL (MAP) SCREEN -->
-        <activity
-            android:name=".TravelActivity"
-            android:exported="false" /> <!-- STATS SCREEN -->
-        <activity
-            android:name=".StatsActivity"
-            android:exported="false" /> <!-- GOOGLE MAPS API KEY -->
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".JournalActivity" android:exported="false" />
+        <activity android:name=".TravelActivity" android:exported="false" />
+        <activity android:name=".StatsActivity" android:exported="false" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/my_maps_api_key" />
     </application>
-
 </manifest>

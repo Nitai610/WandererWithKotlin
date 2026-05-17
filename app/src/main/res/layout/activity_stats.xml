@@ -7,7 +7,6 @@
     android:orientation="vertical"
     android:padding="24dp">
 
-    <!-- Screen Title -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -18,9 +17,6 @@
         android:textSize="32sp"
         android:textStyle="bold" />
 
-    <!-- 1. Weekly Card (Solid White, Elevated) -->
-
-    <!-- 2. Monthly Card (Charcoal Gray, Lighter than All-Time) -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -48,7 +44,6 @@
             android:layout_marginTop="24dp"
             android:orientation="horizontal">
 
-            <!-- Distance -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -69,11 +64,10 @@
                     android:layout_height="wrap_content"
                     android:text="0.00 KM"
                     android:textColor="#1a181b"
-                    android:textSize="24sp"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Time -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -94,7 +88,31 @@
                     android:layout_height="wrap_content"
                     android:text="00:00"
                     android:textColor="#1a181b"
-                    android:textSize="24sp"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Steps"
+                    android:textColor="#9E9E9E"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvStatsWeeklySteps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="#1a181b"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
@@ -139,14 +157,13 @@
                     android:textColor="#9E9E9E"
                     android:textSize="12sp" />
 
-                <!-- Used a bright mint green so it pops on the dark gray! -->
                 <TextView
                     android:id="@+id/tvStatsMonthly"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0.00 KM"
                     android:textColor="#FFCA28"
-                    android:textSize="24sp"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -170,13 +187,36 @@
                     android:layout_height="wrap_content"
                     android:text="00:00"
                     android:textColor="#FFCA28"
-                    android:textSize="24sp"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Steps"
+                    android:textColor="#9E9E9E"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvStatsMonthlySteps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="#FFCA28"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- 3. All-Time Card (Deep Pitch Black Theme) -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -221,7 +261,7 @@
                     android:layout_height="wrap_content"
                     android:text="0.00 KM"
                     android:textColor="#FFFFFF"
-                    android:textSize="28sp"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -245,19 +285,41 @@
                     android:layout_height="wrap_content"
                     android:text="00:00"
                     android:textColor="#FFFFFF"
-                    android:textSize="28sp"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Steps"
+                    android:textColor="#757575"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvStatsAllTimeSteps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- This invisible view acts like a spring, pushing the Back button to the very bottom! -->
     <View
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- 4. The Floating Pill Button #424242-->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnStatsBack"
         android:layout_width="wrap_content"
