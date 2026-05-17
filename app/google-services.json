@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "921052575726",
+    "project_id": "wanderer-nitai",
+    "storage_bucket": "wanderer-nitai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:921052575726:android:ae52e5f7ae697dc537c0ff",
+        "android_client_info": {
+          "package_name": "com.nitai.wanderer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "@string/my_maps_api_key"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

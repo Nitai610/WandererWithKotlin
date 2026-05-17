@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Wanderer</string>
+    <string-array name="security_questions">
+        <item>What was the name of your first pet?</item>
+        <item>What is your favorite movie></item>
+        <item>What was your childhood nickname?</item>
+        <item>What is your favorite book?</item>
+    </string-array>
+</resources>

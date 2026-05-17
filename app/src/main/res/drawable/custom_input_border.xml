@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+
+    <!-- The inside color of the text box (White) -->
+    <solid android:color="#FFFFFF" />
+
+    <!-- The thick noticeable border (Dark Gray, 2dp thickness) -->
+    <stroke
+        android:width="2dp"
+        android:color="#333333" />
+
+    <!-- Beautiful rounded corners -->
+    <corners android:radius="12dp" />
+
+    <!-- Padding so the text doesn't touch the edges -->
+    <padding
+        android:left="16dp"
+        android:top="12dp"
+        android:right="16dp"
+        android:bottom="12dp" />
+
+</shape>
